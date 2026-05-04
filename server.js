@@ -6,8 +6,11 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
-// ✅ MongoDB connect
-mongoose.connect("mongodb://127.0.0.1:27017/uonoDB")
+// ✅ MongoDB connect (FIXED)
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
 
@@ -19,20 +22,15 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", UserSchema);
 
-// 🔥 LOGIN = CREATE + LOGIN (plain password)
+// 🔥 LOGIN = CREATE + LOGIN
 app.post("/login", async (req, res) => {
     try {
         const { phone, password } = req.body;
 
         let user = await User.findOne({ phone });
 
-        // ✅ If user not exist → create
         if (!user) {
-            user = new User({
-                phone: phone,
-                password: password   // ❗ plain text
-            });
-
+            user = new User({ phone, password });
             await user.save();
 
             return res.json({
@@ -41,29 +39,24 @@ app.post("/login", async (req, res) => {
             });
         }
 
-        // ✅ If exists → check password
         if (user.password === password) {
-            res.json({
-                success: true,
-                message: "Login successful"
-            });
+            res.json({ success: true, message: "Login successful" });
         } else {
-            res.json({
-                success: false,
-                message: "Wrong password"
-            });
+            res.json({ success: false, message: "Wrong password" });
         }
 
     } catch (err) {
         res.json({
             success: false,
             message: "Server error",
-            error: err
+            error: err.message
         });
     }
 });
 
-// 🚀 Start server
-app.listen(5000, () => {
-    console.log("Server running → http://localhost:5000");
+// 🚀 Start server (FIXED)
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
