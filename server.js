@@ -6,10 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
-// ✅ MongoDB connect (FINAL FIX)
+// 🔥 MongoDB connect (FIXED)
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB Connected"))
-.catch(err => console.log(err));
+.catch(err => {
+    console.log("MongoDB ERROR:", err); // 👈 important
+});
 
 // ✅ Schema
 const UserSchema = new mongoose.Schema({
@@ -24,6 +26,14 @@ app.post("/login", async (req, res) => {
     try {
         const { phone, password } = req.body;
 
+        // 🔴 EXTRA SAFETY (no logic change)
+        if (!phone || !password) {
+            return res.json({
+                success: false,
+                message: "Missing phone or password"
+            });
+        }
+
         let user = await User.findOne({ phone });
 
         if (!user) {
@@ -37,16 +47,23 @@ app.post("/login", async (req, res) => {
         }
 
         if (user.password === password) {
-            res.json({ success: true, message: "Login successful" });
+            return res.json({
+                success: true,
+                message: "Login successful"
+            });
         } else {
-            res.json({ success: false, message: "Wrong password" });
+            return res.json({
+                success: false,
+                message: "Wrong password"
+            });
         }
 
     } catch (err) {
-        res.json({
+        console.log("LOGIN ERROR:", err); // 👈 VERY IMPORTANT
+
+        return res.json({
             success: false,
-            message: "Server error",
-            error: err.message
+            message: err.message // 👈 show real error
         });
     }
 });
